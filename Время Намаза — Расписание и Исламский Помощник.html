@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="ru" class="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Время Намаза — Расписание, Кибла и Тасбих</title>
+    <!-- Подключение Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Подключение шрифтов Google Fonts (Inter + Amiri для арабского текста) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Иконки Lucide -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        arabic: ['Amiri', 'serif'],
+                    },
+                    colors: {
+                        emerald: {
+                            50: '#ecfdf5',
+                            100: '#d1fae5',
+                            600: '#059669',
+                            700: '#047857',
+                            800: '#065f46',
+                            900: '#064e3b',
+                            950: '#022c22',
+                        },
+                        gold: {
+                            400: '#fbbf24',
+                            500: '#f59e0b',
+                            600: '#d97706',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-slate-50 text-slate-800 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-300 min-h-screen flex flex-col">
+
+    <!-- Модальное окно первоначального выбора страны и города -->
+    <div id="locationModal" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/70 backdrop-blur-sm p-4 hidden">
+        <div class="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-6 sm:p-8 shadow-2xl border border-emerald-100 dark:border-emerald-900/50 transform transition-all">
+            <div class="flex flex-col items-center text-center mb-6">
+                <div class="w-16 h-16 rounded-2xl bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-400 flex items-center justify-center mb-4">
+                    <i data-lucide="map-pin" class="w-8 h-8"></i>
+                </div>
+                <h2 class="text-2xl font-bold text-slate-900 dark:text-white">Выберите ваш регион</h2>
+                <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">Укажите страну и город для точного расчета времени намаза и направления Киблы</p>
+            </div>
+
+            <div class="space-y-4">
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">1. Выберите страну</label>
+                    <select id="modalCountrySelect" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-600 transition">
+                        <!-- Заполняется через JS -->
+                    </select>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 mb-1.5">2. Выберите город</label>
+                    <select id="modalCitySelect" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-600 transition">
+                        <!-- Заполняется через JS -->
+                    </select>
+                </div>
+
+                <button id="confirmLocationBtn" class="w-full mt-2 bg-gradient-to-r from-emerald-700 to-emerald-600 hover:from-emerald-800 hover:to-emerald-700 text-white font-semibold py-3.5 px-6 rounded-xl shadow-lg shadow-emerald-600/20 transition transform active:scale-[0.98] flex items-center justify-center gap-2">
+                    <span>Показать расписание</span>
+                    <i data-lucide="arrow-right" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Шапка сайта -->
+    <header class="sticky top-0 z-30 bg-white/90 dark:bg-slate-900/90 backdrop-blur-md border-b border-slate-200/80 dark:border-slate-800">
+        <div class="max-w-5xl mx-auto px-4 py-3.5 flex flex-wrap items-center justify-between gap-3">
+            <!-- Логотип -->
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-700 to-emerald-900 flex items-center justify-center text-amber-300 shadow-md">
+                    <i data-lucide="moon" class="w-5 h-5 fill-current"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg leading-tight text-emerald-950 dark:text-emerald-50">Время Намаза</h1>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">Точное расписание молитв</p>
+                </div>
+            </div>
+
+            <!-- Быстрый выбор страны и города в шапке -->
+            <div class="flex items-center gap-2 flex-wrap">
+                <div class="flex items-center bg-slate-100 dark:bg-slate-800 rounded-xl p-1 border border-slate-200/70 dark:border-slate-700">
+                    <select id="headerCountrySelect" aria-label="Страна" class="bg-transparent text-xs sm:text-sm font-medium text-slate-700 dark:text-slate-200 px-2.5 py-1.5 rounded-lg focus:outline-none cursor-pointer">
+                    </select>
+                    <span class="text-slate-300 dark:text-slate-600">/</span>
+                    <select id="headerCitySelect" aria-label="Город" class="bg-transparent text-xs sm:text-sm font-semibold text-emerald-700 dark:text-emerald-400 px-2.5 py-1.5 rounded-lg focus:outline-none cursor-pointer">
+                    </select>
+                </div>
+
+                <!-- Переключатель ночной темы -->
+                <button id="themeToggleBtn" aria-label="Переключить тему" class="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-amber-400 hover:bg-slate-200 dark:hover:bg-slate-700 transition">
+                    <i data-lucide="sun" class="w-5 h-5 hidden dark:block"></i>
+                    <i data-lucide="moon" class="w-5 h-5 block dark:hidden"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Основной контент -->
+    <main class="flex-grow max-w-5xl w-full mx-auto px-4 py-6 space-y-6">
+
+        <!-- Главная карточка с таймером и датами -->
+        <section class="relative overflow-hidden rounded-3xl bg-gradient-to-br from-emerald-900 via-emerald-800 to-teal-900 text-white p-6 sm:p-8 shadow-xl">
+            <!-- Декоративные элементы фона -->
+            <div class="absolute -right-12 -top-12 w-64 h-64 rounded-full bg-amber-400/10 blur-2xl pointer-events-none"></div>
+            <div class="absolute -left-12 -bottom-12 w-64 h-64 rounded-full bg-emerald-400/10 blur-2xl pointer-events-none"></div>
+
+            <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between gap-6">
+                <!-- Информация о локации и дате -->
+                <div class="space-y-2">
+                    <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 backdrop-blur-sm text-amber-300 text-xs font-medium">
+                        <i data-lucide="map-pin" class="w-3.5 h-3.5"></i>
+                        <span id="displayLocationName">Кыргызстан, г. Ош</span>
+                    </div>
+                    <h2 class="text-2xl sm:text-3xl font-bold tracking-tight" id="gregorianDateText">Загрузка даты...</h2>
+                    <p class="text-emerald-200 text-sm sm:text-base flex items-center gap-2" id="hijriDateText">
+                        <i data-lucide="calendar" class="w-4 h-4 text-amber-400"></i>
+                        <span>Календарь Хиджры</span>
+                    </p>
+                </div>
+
+                <!-- Блок обратного отсчета -->
+                <div class="bg-black/25 backdrop-blur-md border border-white/15 rounded-2xl p-4 sm:p-5 min-w-[240px] text-center md:text-right">
+                    <p class="text-xs uppercase tracking-wider text-emerald-200 font-medium">Следующий намаз: <span id="nextPrayerName" class="text-amber-300 font-bold">—</span></p>
+                    <div id="countdownTimer" class="text-3xl sm:text-4xl font-bold font-mono tracking-wider text-white my-1">
+                        00:00:00
+                    </div>
+                    <p class="text-xs text-emerald-200/80" id="statusBadge">Метод расчета: Всемирная исламская лига</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- Навигационные вкладки -->
+        <nav class="flex p-1.5 bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-200/80 dark:border-slate-800 overflow-x-auto">
+            <button data-tab="schedule" class="tab-btn flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-semibold transition bg-emerald-700 text-white shadow-sm whitespace-nowrap">
+                <i data-lucide="clock" class="w-4 h-4"></i>
+                <span>Расписание</span>
+            </button>
+            <button data-tab="qibla" class="tab-btn flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition whitespace-nowrap">
+                <i data-lucide="compass" class="w-4 h-4"></i>
+                <span>Компас Киблы</span>
+            </button>
+            <button data-tab="tasbih" class="tab-btn flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition whitespace-nowrap">
+                <i data-lucide="fingerprint" class="w-4 h-4"></i>
+                <span>Тасбих</span>
+            </button>
+            <button data-tab="dua" class="tab-btn flex-1 flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl text-sm font-medium text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition whitespace-nowrap">
+                <i data-lucide="book-open" class="w-4 h-4"></i>
+                <span>Суры и Дуа</span>
+            </button>
+        </nav>
+
+        <!-- ВКЛАДКА 1: Расписание намазов -->
+        <section id="tab-schedule" class="tab-content space-y-4">
+            <!-- Уведомление об источнике данных -->
+            <div id="apiAlert" class="hidden rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 p-3.5 text-xs text-amber-800 dark:text-amber-200 flex items-center gap-2.5">
+                <i data-lucide="info" class="w-4 h-4 shrink-0 text-amber-600"></i>
+                <span id="apiAlertText">Показано резервное расписание для выбранного города.</span>
+            </div>
+
+            <!-- Сетка карточек намазов -->
+            <div id="prayerCardsGrid" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <!-- Карточки генерируются через JS -->
+            </div>
+        </section>
+
+        <!-- ВКЛАДКА 2: Компас Киблы -->
+        <section id="tab-qibla" class="tab-content hidden">
+            <div class="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col items-center text-center">
+                <h3 class="text-xl font-bold text-slate-900 dark:text-white">Направление на Каабу (Кибла)</h3>
+                <p class="text-sm text-slate-500 dark:text-slate-400 mt-1 max-w-md">
+                    Азимут на Священную Мекку из города <span id="qiblaCityName" class="font-semibold text-emerald-700 dark:text-emerald-400">Ош</span> составляет <span id="qiblaAngleText" class="font-bold text-amber-600 dark:text-amber-400">245°</span> от севера.
+                </p>
+
+                <!-- Визуальный компас -->
+                <div class="relative w-64 h-64 sm:w-72 sm:h-72 my-8 flex items-center justify-center">
+                    <!-- Внешний обод -->
+                    <div class="absolute inset-0 rounded-full border-4 border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/60 shadow-inner"></div>
+                    
+                    <!-- Стороны света -->
+                    <span class="absolute top-3 font-bold text-xs text-rose-500">С (0°)</span>
+                    <span class="absolute bottom-3 font-bold text-xs text-slate-400">Ю (180°)</span>
+                    <span class="absolute right-3 font-bold text-xs text-slate-400">В (90°)</span>
+                    <span class="absolute left-3 font-bold text-xs text-slate-400">З (270°)</span>
+
+                    <!-- Вращающаяся стрелка Киблы -->
+                    <div id="qiblaNeedle" class="relative w-full h-full flex items-center justify-center transition-transform duration-700 ease-out" style="transform: rotate(245deg);">
+                        <!-- Линия направления -->
+                        <div class="w-1.5 h-48 bg-gradient-to-t from-slate-300 via-emerald-600 to-amber-500 rounded-full relative">
+                            <!-- Иконка Каабы на острие -->
+                            <div class="absolute -top-6 left-1/2 -translate-x-1/2 w-10 h-10 rounded-xl bg-slate-900 border-2 border-amber-400 flex items-center justify-center shadow-lg">
+                                <div class="w-5 h-5 border border-amber-400/80 bg-slate-950 relative">
+                                    <div class="w-full h-1 bg-amber-400 mt-1"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Центральная ось -->
+                    <div class="absolute w-5 h-5 rounded-full bg-emerald-700 border-4 border-white dark:border-slate-900 shadow"></div>
+                </div>
+
+                <div class="flex flex-wrap items-center justify-center gap-3">
+                    <button id="enableDeviceCompassBtn" class="px-4 py-2.5 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 text-xs font-semibold hover:bg-emerald-100 transition flex items-center gap-2">
+                        <i data-lucide="smartphone" class="w-4 h-4"></i>
+                        <span>Включить датчик телефона</span>
+                    </button>
+                </div>
+                <p id="compassSensorStatus" class="text-xs text-slate-400 mt-3">Наведите верхнюю часть телефона на Север (С), чтобы золотой указатель показал направление на Каабу.</p>
+            </div>
+        </section>
+
+        <!-- ВКЛАДКА 3: Электронный Тасбих -->
+        <section id="tab-tasbih" class="tab-content hidden">
+            <div class="bg-white dark:bg-slate-900 rounded-3xl p-6 sm:p-8 border border-slate-200/80 dark:border-slate-800 shadow-sm max-w-xl mx-auto text-center space-y-6">
+                <div>
+                    <h3 class="text-xl font-bold text-slate-900 dark:text-white">Электронный Тасбих</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">Счетчик поминания Всевышнего (зикра)</p>
+                </div>
+
+                <!-- Выбор зикра -->
+                <div class="space-y-2">
+                    <select id="dhikrSelect" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm font-medium text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-emerald-600">
+                        <option value="subhanallah">Субханаллах (Слава Аллаху)</option>
+                        <option value="alhamdulillah">Альхамдулиллях (Хвала Аллаху)</option>
+                        <option value="allahuakbar">Аллаху Акбар (Аллах Велик)</option>
+                        <option value="astaghfirullah">Астагфируллах (Прошу прощения у Аллаха)</option>
+                        <option value="salawat">Аллахумма салли ‘аля Мухаммад (Салават)</option>
+                    </select>
+
+                    <!-- Арабский текст выбранного зикра -->
+                    <div class="p-4 rounded-2xl bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-100 dark:border-emerald-900/50">
+                        <p id="dhikrArabic" class="font-arabic text-3xl text-emerald-900 dark:text-emerald-300 leading-relaxed">سُبْحَانَ اللَّهِ</p>
+                        <p id="dhikrTranslit" class="text-xs font-medium text-slate-600 dark:text-slate-400 mt-1">Субханаллах — Пречист Аллах от всех недостатков</p>
+                    </div>
+                </div>
+
+                <!-- Выбор цели (33 / 99 / 1000) -->
+                <div class="flex items-center justify-center gap-2">
+                    <span class="text-xs text-slate-500">Цель:</span>
+                    <button data-target="33" class="tasbih-target-btn px-3 py-1 rounded-lg text-xs font-bold bg-emerald-700 text-white">33</button>
+                    <button data-target="99" class="tasbih-target-btn px-3 py-1 rounded-lg text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">99</button>
+                    <button data-target="1000" class="tasbih-target-btn px-3 py-1 rounded-lg text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">1000</button>
+                </div>
+
+                <!-- Дисплей счетчика -->
+                <div class="py-2">
+                    <div class="text-6xl font-bold font-mono text-emerald-800 dark:text-emerald-400" id="tasbihCount">0</div>
+                    <div class="text-xs text-slate-400 mt-1">из <span id="tasbihTargetDisplay">33</span> • Кругов завершено: <span id="tasbihRounds" class="font-semibold text-amber-600">0</span></div>
+                </div>
+
+                <!-- Большая кнопка нажатия -->
+                <div class="flex flex-col items-center gap-4">
+                    <button id="tasbihTapBtn" class="w-36 h-36 rounded-full bg-gradient-to-b from-emerald-600 to-emerald-800 hover:from-emerald-500 hover:to-emerald-700 text-white shadow-xl shadow-emerald-700/30 border-4 border-emerald-200 dark:border-emerald-900 flex flex-col items-center justify-center transition transform active:scale-95 select-none">
+                        <i data-lucide="plus" class="w-10 h-10 mb-1"></i>
+                        <span class="text-xs uppercase tracking-wider font-semibold">Считать</span>
+                    </button>
+
+                    <button id="tasbihResetBtn" class="inline-flex items-center gap-1.5 text-xs font-medium text-slate-400 hover:text-rose-500 transition py-1 px-3 rounded-lg">
+                        <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                        <span>Сбросить счетчик</span>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- ВКЛАДКА 4: Суры и Дуа -->
+        <section id="tab-dua" class="tab-content hidden space-y-4">
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4" id="duaContainer">
+                <!-- Карточки сур и дуа генерируются через JS -->
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Подвал сайта -->
+    <footer class="border-t border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 py-6 mt-8">
+        <div class="max-w-5xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500 dark:text-slate-400">
+            <p>© 2026 Время Намаза. Расписание молитв для стран СНГ и мира.</p>
+            <button id="openModalFooterBtn" class="text-emerald-700 dark:text-emerald-400 font-semibold hover:underline flex items-center gap-1">
+                <i data-lucide="globe" class="w-3.5 h-3.5"></i>
+                <span>Изменить страну и город</span>
+            </button>
+        </div>
+    </footer>
+
+    <script>
+        // База данных стран и городов с координатами (для расчета Киблы) и английскими названиями для Aladhan API
+        const LOCATIONS_DB = {
+            "Kyrgyzstan": {
+                nameRu: "Кыргызстан",
+                method: 3, // Muslim World League
+                cities: {
+                    "Osh": { nameRu: "Ош", lat: 40.5283, lon: 72.7985, fallback: { Fajr: "06:18", Sunrise: "07:45", Dhuhr: "13:02", Asr: "15:46", Maghrib: "18:08", Isha: "19:30" } },
+                    "Bishkek": { nameRu: "Бишкек", lat: 42.8746, lon: 74.5698, fallback: { Fajr: "06:14", Sunrise: "07:47", Dhuhr: "12:55", Asr: "15:33", Maghrib: "17:53", Isha: "19:20" } },
+                    "Jalal-Abad": { nameRu: "Джалал-Абад", lat: 40.9333, lon: 73.0000, fallback: { Fajr: "06:17", Sunrise: "07:45", Dhuhr: "13:01", Asr: "15:44", Maghrib: "18:06", Isha: "19:28" } },
+                    "Karakol": { nameRu: "Каракол", lat: 42.4907, lon: 78.3936, fallback: { Fajr: "05:59", Sunrise: "07:31", Dhuhr: "12:40", Asr: "15:19", Maghrib: "17:39", Isha: "19:05" } },
+                    "Batken": { nameRu: "Баткен", lat: 40.0626, lon: 70.8194, fallback: { Fajr: "06:25", Sunrise: "07:51", Dhuhr: "13:10", Asr: "15:55", Maghrib: "18:17", Isha: "19:38" } },
+                    "Naryn": { nameRu: "Нарын", lat: 41.4287, lon: 75.9911, fallback: { Fajr: "06:06", Sunrise: "07:36", Dhuhr: "12:49", Asr: "15:31", Maghrib: "17:52", Isha: "19:16" } },
+                    "Talas": { nameRu: "Талас", lat: 42.5228, lon: 72.2427, fallback: { Fajr: "06:23", Sunrise: "07:55", Dhuhr: "13:04", Asr: "15:43", Maghrib: "18:04", Isha: "19:30" } }
+                }
+            },
+            "Kazakhstan": {
+                nameRu: "Казахстан",
+                method: 3,
+                cities: {
+                    "Almaty": { nameRu: "Алматы", lat: 43.2220, lon: 76.8512, fallback: { Fajr: "05:06", Sunrise: "06:40", Dhuhr: "11:46", Asr: "14:23", Maghrib: "16:43", Isha: "18:10" } },
+                    "Astana": { nameRu: "Астана", lat: 51.1694, lon: 71.4491, fallback: { Fajr: "05:44", Sunrise: "07:41", Dhuhr: "12:08", Asr: "14:15", Maghrib: "16:26", Isha: "18:15" } },
+                    "Shymkent": { nameRu: "Шымкент", lat: 42.3417, lon: 69.5901, fallback: { Fajr: "05:33", Sunrise: "07:05", Dhuhr: "12:15", Asr: "14:55", Maghrib: "17:16", Isha: "18:41" } },
+                    "Turkistan": { nameRu: "Туркестан", lat: 43.2973, lon: 68.2517, fallback: { Fajr: "05:40", Sunrise: "07:14", Dhuhr: "12:21", Asr: "14:58", Maghrib: "17:18", Isha: "18:45" } }
+                }
+            },
+            "Uzbekistan": {
+                nameRu: "Узбекистан",
+                method: 3,
+                cities: {
+                    "Tashkent": { nameRu: "Ташкент", lat: 41.2995, lon: 69.2401, fallback: { Fajr: "05:33", Sunrise: "07:02", Dhuhr: "12:16", Asr: "14:59", Maghrib: "17:21", Isha: "18:44" } },
+                    "Samarkand": { nameRu: "Самарканд", lat: 39.6270, lon: 66.9750, fallback: { Fajr: "05:39", Sunrise: "07:05", Dhuhr: "12:25", Asr: "15:12", Maghrib: "17:35", Isha: "18:55" } },
+                    "Bukhara": { nameRu: "Бухара", lat: 39.7681, lon: 64.4556, fallback: { Fajr: "05:49", Sunrise: "07:15", Dhuhr: "12:35", Asr: "15:22", Maghrib: "17:45", Isha: "19:05" } },
+                    "Andijan": { nameRu: "Андижан", lat: 40.7821, lon: 72.3442, fallback: { Fajr: "05:20", Sunrise: "06:48", Dhuhr: "12:04", Asr: "14:48", Maghrib: "17:10", Isha: "18:32" } }
+                }
+            },
+            "Russia": {
+                nameRu: "Россия",
+                method: 3,
+                cities: {
+                    "Moscow": { nameRu: "Москва", lat: 55.7558, lon: 37.6173, fallback: { Fajr: "06:16", Sunrise: "08:16", Dhuhr: "12:23", Asr: "14:15", Maghrib: "16:10", Isha: "18:04" } },
+                    "Kazan": { nameRu: "Казань", lat: 55.7961, lon: 49.1064, fallback: { Fajr: "05:30", Sunrise: "07:30", Dhuhr: "11:37", Asr: "13:29", Maghrib: "15:24", Isha: "17:18" } },
+                    "Saint Petersburg": { nameRu: "Санкт-Петербург", lat: 59.9343, lon: 30.3351, fallback: { Fajr: "06:55", Sunrise: "09:12", Dhuhr: "12:52", Asr: "14:25", Maghrib: "16:15", Isha: "18:25" } },
+                    "Grozny": { nameRu: "Грозный", lat: 43.3178, lon: 45.6981, fallback: { Fajr: "05:11", Sunrise: "06:45", Dhuhr: "11:51", Asr: "14:28", Maghrib: "16:48", Isha: "18:15" } },
+                    "Makhachkala": { nameRu: "Махачкала", lat: 42.9849, lon: 47.5047, fallback: { Fajr: "05:03", Sunrise: "06:36", Dhuhr: "11:44", Asr: "14:22", Maghrib: "16:42", Isha: "18:08" } }
+                }
+            },
+            "Tajikistan": {
+                nameRu: "Таджикистан",
+                method: 3,
+                cities: {
+                    "Dushanbe": { nameRu: "Душанбе", lat: 38.5598, lon: 68.7870, fallback: { Fajr: "05:30", Sunrise: "06:54", Dhuhr: "12:18", Asr: "15:08", Maghrib: "17:32", Isha: "18:50" } },
+                    "Khujand": { nameRu: "Худжанд", lat: 40.2826, lon: 69.6222, fallback: { Fajr: "05:30", Sunrise: "06:57", Dhuhr: "12:15", Asr: "15:00", Maghrib: "17:22", Isha: "18:44" } }
+                }
+            },
+            "Turkey": {
+                nameRu: "Турция",
+                method: 13, // Diyanet
+                cities: {
+                    "Istanbul": { nameRu: "Стамбул", lat: 41.0082, lon: 28.9784, fallback: { Fajr: "06:24", Sunrise: "07:53", Dhuhr: "13:01", Asr: "15:32", Maghrib: "17:56", Isha: "19:18" } },
+                    "Ankara": { nameRu: "Анкара", lat: 39.9334, lon: 32.8597, fallback: { Fajr: "06:07", Sunrise: "07:34", Dhuhr: "12:46", Asr: "15:19", Maghrib: "17:44", Isha: "19:04" } }
+                }
+            },
+            "Saudi Arabia": {
+                nameRu: "Саудовская Аравия",
+                method: 4, // Umm Al-Qura
+                cities: {
+                    "Makkah": { nameRu: "Мекка", lat: 21.4225, lon: 39.8262, fallback: { Fajr: "05:15", Sunrise: "06:34", Dhuhr: "12:12", Asr: "15:27", Maghrib: "17:50", Isha: "19:20" } },
+                    "Madinah": { nameRu: "Медина", lat: 24.4672, lon: 39.6111, fallback: { Fajr: "05:19", Sunrise: "06:41", Dhuhr: "12:13", Asr: "15:23", Maghrib: "17:45", Isha: "19:15" } }
+                }
+            }
+        };
+
+        // Список намазов для отображения
+        const PRAYERS_META = [
+            { key: "Fajr", nameRu: "Фаджр (Утренний)", icon: "sunrise", desc: "Рассветная молитва" },
+            { key: "Sunrise", nameRu: "Восход солнца", icon: "sun", desc: "Время окончания Фаджра", isInfoOnly: true },
+            { key: "Dhuhr", nameRu: "Зухр (Полуденный)", icon: "sun", desc: "Полуденная молитва" },
+            { key: "Asr", nameRu: "Аср (Предвечерний)", icon: "cloud-sun", desc: "Послеполуденная молитва" },
+            { key: "Maghrib", nameRu: "Магриб (Вечерний)", icon: "sunset", desc: "Молитва после заката" },
+            { key: "Isha", nameRu: "Иша (Ночной)", icon: "moon", desc: "Ночная молитва" }
+        ];
+
+        // Данные для Тасбиха
+        const DHIKR_DATA = {
+            subhanallah: { arabic: "سُبْحَانَ اللَّهِ", translit: "Субханаллах — Слава Аллаху (Пречист Аллах)" },
+            alhamdulillah: { arabic: "الْحَمْدُ لِلَّهِ", translit: "Альхамдулиллях — Вся хвала принадлежит Аллаху" },
+            allahuakbar: { arabic: "اللَّهُ أَكْبَرُ", translit: "Аллаху Акбар — Аллах Превелик" },
+            astaghfirullah: { arabic: "أَسْتَغْفِرُ اللَّهَ", translit: "Астагфируллах — Прошу прощения у Аллаха" },
+            salawat: { arabic: "اللَّهُمَّ صَلِّ عَلَى مُحَمَّدٍ", translit: "Аллахумма салли ‘аля Мухаммад — О Аллах, благослови Мухаммада" }
+        };
+
+        // Сборник сур и дуа
+        const DUA_COLLECTION = [
+            {
+                title: "Сура Аль-Фатиха (Открывающая Коран)",
+                arabic: "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ ۝ الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ ۝ الرَّحْمَٰنِ الرَّحِيمِ ۝ مَالِكِ يَوْمِ الدِّينِ ۝ إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ ۝ اهْدِنَا الصِّرَاطَ الْمُسْتَقِيمَ ۝ صِرَاطَ الَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ الْمَغْضُوبِ عَلَيْهِمْ وَلَا الضَّالِّينَ",
+                translit: "Бисмилляхи-р-Рахмани-р-Рахим. Аль-хамду лилляхи Рабби-ль-‘алямин. Ар-Рахмани-р-Рахим. Малики яуми-д-дин. Иййака на‘буду ва иййака наста‘ин. Ихдина-с-сырата-ль-мустакым. Сырата-ллязина ан‘амта ‘алейхим, гайри-ль-магдуби ‘алейхим ва ля-д-даллин.",
+                translation: "Во имя Аллаха, Милостивого, Милосердного! Хвала Аллаху, Господу миров, Милостивому, Милосердному, Властелину Дня воздаяния! Тебе одному мы поклоняемся и Тебя одного молим о помощи. Веди нас прямым путем, путем тех, кого Ты облагодетельствовал, не тех, на кого пал гнев, и не заблудших."
+            },
+            {
+                title: "Сура Аль-Ихлас (Очищение веры)",
+                arabic: "قُلْ هُوَ اللَّهُ أَحَدٌ ۝ اللَّهُ الصَّمَدُ ۝ لَمْ يَلِدْ وَلَمْ يُولَدْ ۝ وَلَمْ يَكُن لَّهُ كُفُوًا أَحَدٌ",
+                translit: "Куль хува-Ллаху Ахад. Аллаху-с-Самад. Лям ялид ва лям юляд. Ва лям якуль-ляху куфуван ахад.",
+                translation: "Скажи: «Он — Аллах Единый, Аллах Самодостаточный. Он не родил и не был рожден, и нет никого равного Ему»."
+            },
+            {
+                title: "Дуа после Азана",
+                arabic: "اللَّهُمَّ رَبَّ هَذِهِ الدَّعْوَةِ التَّامَّةِ، وَالصَّلَاةِ الْقَائِمَةِ، آتِ مُحَمَّدًا الْوَسِيلَةَ وَالْفَضِيلَةَ، وَابْعَثْهُ مَقَامًا مَحْمُودًا الَّذِي وَعَدْتَهُ",
+                translit: "Аллахумма Рабба хазихи-д-да‘вати-т-таммати ва-с-саляти-ль-каимати, ати Мухаммадани-ль-василята ва-ль-фадылята, ва-б‘асху макаман махмудани-ллязи ва‘адтаху.",
+                translation: "О Аллах, Господь этого совершенного призыва и совершающейся молитвы, даруй Мухаммаду Аль-Василю (высочайшую степень в Раю) и достоинство, и воскреси его на месте достохвальном, которое Ты обещал ему."
+            },
+            {
+                title: "Дуа при выходе из дома",
+                arabic: "بِسْمِ اللَّهِ ، تَوَكَّلْتُ عَلَى اللَّهِ ، وَلَا حَوْلَ وَلَا قُوَّةَ إِلَّا بِاللَّهِ",
+                translit: "Бисмилляхи, таваккальту ‘аля-Ллахи, ва ля хауля ва ля куввата илля би-Ллях.",
+                translation: "С именем Аллаха, я уповаю на Аллаха, и нет мощи и силы ни у кого, кроме Аллаха."
+            }
+        ];
+
+        // Состояние приложения
+        let state = {
+            country: localStorage.getItem('namaz_country') || 'Kyrgyzstan',
+            city: localStorage.getItem('namaz_city') || 'Osh',
+            timings: null,
+            countdownInterval: null,
+            tasbihCount: parseInt(localStorage.getItem('tasbih_count') || '0', 10),
+            tasbihTarget: parseInt(localStorage.getItem('tasbih_target') || '33', 10),
+            tasbihRounds: parseInt(localStorage.getItem('tasbih_rounds') || '0', 10)
+        };
+
+        // Инициализация при загрузке DOM
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+            initTheme();
+            populateLocationSelects();
+            setupEventListeners();
+            renderDuaList();
+            initTasbih();
+
+            // Если пользователь зашел впервые, показываем модальное окно выбора страны и города
+            if (!localStorage.getItem('namaz_visited')) {
+                document.getElementById('locationModal').classList.remove('hidden');
+            }
+
+            // Загружаем расписание для текущей локации
+            updateLocationAndFetch(state.country, state.city);
+        });
+
+        // Настройка темной/светлой темы
+        function initTheme() {
+            const savedTheme = localStorage.getItem('namaz_theme');
+            if (savedTheme === 'dark' || (!savedTheme && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+                document.documentElement.classList.add('dark');
+            }
+            document.getElementById('themeToggleBtn').addEventListener('click', () => {
+                document.documentElement.classList.toggle('dark');
+                const isDark = document.documentElement.classList.contains('dark');
+                localStorage.setItem('namaz_theme', isDark ? 'dark' : 'light');
+            });
+        }
+
+        // Заполнение выпадающих списков стран и городов (в модальном окне и в шапке)
+        function populateLocationSelects() {
+            const modalCountry = document.getElementById('modalCountrySelect');
+            const headerCountry = document.getElementById('headerCountrySelect');
+
+            modalCountry.innerHTML = '';
+            headerCountry.innerHTML = '';
+
+            Object.entries(LOCATIONS_DB).forEach(([countryKey, countryObj]) => {
+                const opt1 = new Option(countryObj.nameRu, countryKey);
+                const opt2 = new Option(countryObj.nameRu, countryKey);
+                modalCountry.add(opt1);
+                headerCountry.add(opt2);
+            });
+
+            modalCountry.value = state.country;
+            headerCountry.value = state.country;
+
+            populateCityOptions(state.country, 'modalCitySelect', state.city);
+            populateCityOptions(state.country, 'headerCitySelect', state.city);
+        }
+
+        function populateCityOptions(countryKey, selectElementId, selectedCityKey = null) {
+            const citySelect = document.getElementById(selectElementId);
+            citySelect.innerHTML = '';
+            const cities = LOCATIONS_DB[countryKey]?.cities || {};
+            const cityKeys = Object.keys(cities);
+
+            cityKeys.forEach(cKey => {
+                const opt = new Option(cities[cKey].nameRu, cKey);
+                citySelect.add(opt);
+            });
+
+            if (selectedCityKey && cities[selectedCityKey]) {
+                citySelect.value = selectedCityKey;
+            } else if (cityKeys.length > 0) {
+                citySelect.value = cityKeys[0];
+            }
+        }
+
+        // Настройка обработчиков событий
+        function setupEventListeners() {
+            // Смена страны в модальном окне
+            document.getElementById('modalCountrySelect').addEventListener('change', (e) => {
+                populateCityOptions(e.target.value, 'modalCitySelect');
+            });
+
+            // Подтверждение в модальном окне
+            document.getElementById('confirmLocationBtn').addEventListener('click', () => {
+                const c = document.getElementById('modalCountrySelect').value;
+                const city = document.getElementById('modalCitySelect').value;
+                localStorage.setItem('namaz_visited', 'true');
+                document.getElementById('locationModal').classList.add('hidden');
+                updateLocationAndFetch(c, city);
+            });
+
+            // Смена страны в шапке
+            document.getElementById('headerCountrySelect').addEventListener('change', (e) => {
+                const newCountry = e.target.value;
+                populateCityOptions(newCountry, 'headerCitySelect');
+                const firstCity = document.getElementById('headerCitySelect').value;
+                updateLocationAndFetch(newCountry, firstCity);
+            });
+
+            // Смена города в шапке
+            document.getElementById('headerCitySelect').addEventListener('change', (e) => {
+                const currentCountry = document.getElementById('headerCountrySelect').value;
+                updateLocationAndFetch(currentCountry, e.target.value);
+            });
+
+            // Открытие модального окна из футера
+            document.getElementById('openModalFooterBtn').addEventListener('click', () => {
+                document.getElementById('modalCountrySelect').value = state.country;
+                populateCityOptions(state.country, 'modalCitySelect', state.city);
+                document.getElementById('locationModal').classList.remove('hidden');
+            });
+
+            // Переключение вкладок
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.addEventListener('click', () => {
+                    const targetTab = btn.dataset.tab;
+                    document.querySelectorAll('.tab-btn').forEach(b => {
+                        b.classList.remove('bg-emerald-700', 'text-white', 'shadow-sm');
+                        b.classList.add('text-slate-600', 'dark:text-slate-300', 'hover:bg-slate-100', 'dark:hover:bg-slate-800');
+                    });
+                    btn.classList.add('bg-emerald-700', 'text-white', 'shadow-sm');
+                    btn.classList.remove('text-slate-600', 'dark:text-slate-300', 'hover:bg-slate-100', 'dark:hover:bg-slate-800');
+
+                    document.querySelectorAll('.tab-content').forEach(sec => sec.classList.add('hidden'));
+                    document.getElementById(`tab-${targetTab}`).classList.remove('hidden');
+                });
+            });
+        }
+
+        // Обновление локации и запрос времени намаза
+        async function updateLocationAndFetch(countryKey, cityKey) {
+            state.country = countryKey;
+            state.city = cityKey;
+            localStorage.setItem('namaz_country', countryKey);
+            localStorage.setItem('namaz_city', cityKey);
+
+            // Синхронизируем селекторы в шапке
+            document.getElementById('headerCountrySelect').value = countryKey;
+            populateCityOptions(countryKey, 'headerCitySelect', cityKey);
+
+            const countryObj = LOCATIONS_DB[countryKey];
+            const cityObj = countryObj.cities[cityKey];
+
+            // Обновляем заголовки локации
+            document.getElementById('displayLocationName').textContent = `${countryObj.nameRu}, г. ${cityObj.nameRu}`;
+            document.getElementById('qiblaCityName').textContent = cityObj.nameRu;
+
+            // Расчет и обновление компаса Киблы
+            const qiblaAngle = calculateQiblaAngle(cityObj.lat, cityObj.lon);
+            document.getElementById('qiblaAngleText').textContent = `${qiblaAngle}°`;
+            document.getElementById('qiblaNeedle').style.transform = `rotate(${qiblaAngle}deg)`;
+
+            // Обновляем григорианскую дату на русском
+            const now = new Date();
+            const dateOptions = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+            const formattedDate = now.toLocaleDateString('ru-RU', dateOptions);
+            document.getElementById('gregorianDateText').textContent = formattedDate.charAt(0).toUpperCase() + formattedDate.slice(1);
+
+            const apiAlert = document.getElementById('apiAlert');
+            apiAlert.classList.add('hidden');
+
+            try {
+                // Запрос к Aladhan API
+                const url = `https://api.aladhan.com/v1/timingsByCity?city=${encodeURIComponent(cityKey)}&country=${encodeURIComponent(countryKey)}&method=${countryObj.method}`;
+                const response = await fetch(url);
+                if (!response.ok) throw new Error('Ошибка сети при получении данных');
+                const json = await response.json();
+
+                if (json.code === 200 && json.data) {
+                    const timings = json.data.timings;
+                    // Очищаем время от возможных суффиксов часового пояса
+                    const cleanTimings = {};
+                    Object.keys(timings).forEach(k => {
+                        cleanTimings[k] = timings[k].split(' ')[0];
+                    });
+                    state.timings = cleanTimings;
+
+                    // Дата по Хиджре
+                    const hijri = json.data.date.hijri;
+                    document.getElementById('hijriDateText').innerHTML = `
+                        <i data-lucide="calendar" class="w-4 h-4 text-amber-400"></i>
+                        <span>${hijri.day} ${hijri.month.en} ${hijri.year} г. х.</span>
+                    `;
+                    lucide.createIcons();
+                } else {
+                    throw new Error('Некорректный ответ API');
+                }
+            } catch (error) {
+                // Резервный вариант, если нет подключения к интернету
+                state.timings = cityObj.fallback;
+                apiAlert.classList.remove('hidden');
+                document.getElementById('apiAlertText').textContent = `Автономный режим: показано базовое расписание для г. ${cityObj.nameRu}.`;
+                document.getElementById('hijriDateText').innerHTML = `
+                    <i data-lucide="calendar" class="w-4 h-4 text-amber-400"></i>
+                    <span>Исламский календарь (Хиджра)</span>
+                `;
+                lucide.createIcons();
+            }
+
+            renderPrayerCards();
+            startCountdown();
+        }
+
+        // Отрисовка карточек намазов
+        function renderPrayerCards(activeKey = null) {
+            const grid = document.getElementById('prayerCardsGrid');
+            grid.innerHTML = '';
+
+            if (!state.timings) return;
+
+            PRAYERS_META.forEach(prayer => {
+                const timeStr = state.timings[prayer.key] || '--:--';
+                const isNext = prayer.key === activeKey;
+
+                const card = document.createElement('div');
+                card.className = isNext
+                    ? 'relative rounded-2xl p-5 bg-gradient-to-br from-emerald-700 to-emerald-800 text-white shadow-lg shadow-emerald-700/25 border-2 border-amber-400 transform transition-all scale-[1.01]'
+                    : 'rounded-2xl p-5 bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm hover:border-emerald-300 dark:hover:border-emerald-800 transition-all';
+
+                card.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-3.5">
+                            <div class="w-11 h-11 rounded-xl flex items-center justify-center ${isNext ? 'bg-white/15 text-amber-300' : 'bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-400'}">
+                                <i data-lucide="${prayer.icon}" class="w-5 h-5"></i>
+                            </div>
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <h4 class="font-bold text-base ${isNext ? 'text-white' : 'text-slate-900 dark:text-white'}">${prayer.nameRu}</h4>
+                                    ${isNext ? '<span class="px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded-full bg-amber-400 text-slate-950">Скоро</span>' : ''}
+                                </div>
+                                <p class="text-xs ${isNext ? 'text-emerald-100' : 'text-slate-500 dark:text-slate-400'}">${prayer.desc}</p>
+                            </div>
+                        </div>
+                        <div class="text-2xl font-bold font-mono tracking-tight ${isNext ? 'text-amber-300' : 'text-emerald-800 dark:text-emerald-400'}">
+                            ${timeStr}
+                        </div>
+                    </div>
+                `;
+                grid.appendChild(card);
+            });
+
+            lucide.createIcons();
+        }
+
+        // Таймер обратного отсчета до следующего намаза
+        function startCountdown() {
+            if (state.countdownInterval) clearInterval(state.countdownInterval);
+
+            function updateTimer() {
+                if (!state.timings) return;
+
+                const now = new Date();
+                const prayerOrder = ["Fajr", "Sunrise", "Dhuhr", "Asr", "Maghrib", "Isha"];
+                let nextPrayer = null;
+                let nextPrayerTime = null;
+
+                for (let key of prayerOrder) {
+                    const timeStr = state.timings[key];
+                    if (!timeStr) continue;
+                    const [hours, minutes] = timeStr.split(':').map(Number);
+                    const pDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0);
+
+                    if (pDate > now) {
+                        nextPrayer = PRAYERS_META.find(p => p.key === key);
+                        nextPrayerTime = pDate;
+                        break;
+                    }
+                }
+
+                // Если все намазы на сегодня прошли, берем Фаджр завтрашнего дня
+                if (!nextPrayer) {
+                    const fajrStr = state.timings["Fajr"];
+                    const [hours, minutes] = fajrStr.split(':').map(Number);
+                    nextPrayer = PRAYERS_META[0];
+                    nextPrayerTime = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1, hours, minutes, 0);
+                }
+
+                const diffMs = nextPrayerTime - now;
+                const totalSec = Math.max(0, Math.floor(diffMs / 1000));
+                const hrs = String(Math.floor(totalSec / 3600)).padStart(2, '0');
+                const mins = String(Math.floor((totalSec % 3600) / 60)).padStart(2, '0');
+                const secs = String(totalSec % 60).padStart(2, '0');
+
+                document.getElementById('nextPrayerName').textContent = nextPrayer.nameRu.split(' ')[0];
+                document.getElementById('countdownTimer').textContent = `${hrs}:${mins}:${secs}`;
+
+                // Подсвечиваем активную карточку, если она изменилась
+                if (window.lastActivePrayerKey !== nextPrayer.key) {
+                    window.lastActivePrayerKey = nextPrayer.key;
+                    renderPrayerCards(nextPrayer.key);
+                }
+            }
+
+            updateTimer();
+            state.countdownInterval = setInterval(updateTimer, 1000);
+        }
+
+        // Математический расчет азимута Киблы (направления на Каабу в Мекке)
+        function calculateQiblaAngle(lat, lon) {
+            const kaabaLat = 21.4225 * (Math.PI / 180);
+            const kaabaLon = 39.8262 * (Math.PI / 180);
+            const userLat = lat * (Math.PI / 180);
+            const userLon = lon * (Math.PI / 180);
+
+            const dLon = kaabaLon - userLon;
+            const y = Math.sin(dLon) * Math.cos(kaabaLat);
+            const x = Math.cos(userLat) * Math.sin(kaabaLat) - Math.sin(userLat) * Math.cos(kaabaLat) * Math.cos(dLon);
+            let bearing = Math.atan2(y, x) * (180 / Math.PI);
+            bearing = (bearing + 360) % 360;
+            return Math.round(bearing);
+        }
+
+        // Попытка подключить гироскоп/компас смартфона
+        document.getElementById('enableDeviceCompassBtn').addEventListener('click', async () => {
+            const statusEl = document.getElementById('compassSensorStatus');
+            if (typeof DeviceOrientationEvent !== 'undefined' && typeof DeviceOrientationEvent.requestPermission === 'function') {
+                try {
+                    const permission = await DeviceOrientationEvent.requestPermission();
+                    if (permission === 'granted') {
+                        window.addEventListener('deviceorientation', handleOrientation);
+                        statusEl.textContent = 'Датчик компаса активен! Поворачивайте телефон.';
+                    } else {
+                        statusEl.textContent = 'Доступ к датчику ориентации отклонен.';
+                    }
+                } catch (e) {
+                    statusEl.textContent = 'Не удалось активировать датчик на этом устройстве.';
+                }
+            } else if ('ondeviceorientation' in window) {
+                window.addEventListener('deviceorientation', handleOrientation);
+                statusEl.textContent = 'Датчик компаса подключен (работает на мобильных устройствах с магнитометром).';
+            } else {
+                statusEl.textContent = 'Ваш браузер или ПК не поддерживает магнитный компас. Ориентируйтесь по градусам от Севера.';
+            }
+        });
+
+        function handleOrientation(event) {
+            const heading = event.webkitCompassHeading || (event.alpha ? 360 - event.alpha : null);
+            if (heading !== null) {
+                const cityObj = LOCATIONS_DB[state.country].cities[state.city];
+                const qiblaAngle = calculateQiblaAngle(cityObj.lat, cityObj.lon);
+                const needleRotation = qiblaAngle - heading;
+                document.getElementById('qiblaNeedle').style.transform = `rotate(${needleRotation}deg)`;
+            }
+        }
+
+        // Логика Электронного Тасбиха
+        function initTasbih() {
+            const countEl = document.getElementById('tasbihCount');
+            const targetDisplayEl = document.getElementById('tasbihTargetDisplay');
+            const roundsEl = document.getElementById('tasbihRounds');
+            const dhikrSelect = document.getElementById('dhikrSelect');
+
+            function updateTasbihUI() {
+                countEl.textContent = state.tasbihCount;
+                targetDisplayEl.textContent = state.tasbihTarget;
+                roundsEl.textContent = state.tasbihRounds;
+                localStorage.setItem('tasbih_count', state.tasbihCount);
+                localStorage.setItem('tasbih_target', state.tasbihTarget);
+                localStorage.setItem('tasbih_rounds', state.tasbihRounds);
+            }
+
+            // Выбор текста зикра
+            dhikrSelect.addEventListener('change', (e) => {
+                const selected = DHIKR_DATA[e.target.value];
+                document.getElementById('dhikrArabic').textContent = selected.arabic;
+                document.getElementById('dhikrTranslit').textContent = selected.translit;
+            });
+
+            // Выбор цели (33, 99, 1000)
+            document.querySelectorAll('.tasbih-target-btn').forEach(btn => {
+                if (parseInt(btn.dataset.target, 10) === state.tasbihTarget) {
+                    btn.classList.add('bg-emerald-700', 'text-white');
+                    btn.classList.remove('bg-slate-100', 'dark:bg-slate-800', 'text-slate-600', 'dark:text-slate-300');
+                }
+                btn.addEventListener('click', () => {
+                    state.tasbihTarget = parseInt(btn.dataset.target, 10);
+                    document.querySelectorAll('.tasbih-target-btn').forEach(b => {
+                        b.classList.remove('bg-emerald-700', 'text-white');
+                        b.classList.add('bg-slate-100', 'dark:bg-slate-800', 'text-slate-600', 'dark:text-slate-300');
+                    });
+                    btn.classList.add('bg-emerald-700', 'text-white');
+                    btn.classList.remove('bg-slate-100', 'dark:bg-slate-800', 'text-slate-600', 'dark:text-slate-300');
+                    updateTasbihUI();
+                });
+            });
+
+            // Нажатие на кнопку подсчета
+            document.getElementById('tasbihTapBtn').addEventListener('click', () => {
+                state.tasbihCount++;
+                if (navigator.vibrate) navigator.vibrate(25);
+
+                if (state.tasbihCount >= state.tasbihTarget) {
+                    state.tasbihRounds++;
+                    state.tasbihCount = 0;
+                    if (navigator.vibrate) navigator.vibrate([60, 40, 60]);
+                }
+                updateTasbihUI();
+            });
+
+            // Сброс счетчика
+            document.getElementById('tasbihResetBtn').addEventListener('click', () => {
+                state.tasbihCount = 0;
+                state.tasbihRounds = 0;
+                updateTasbihUI();
+            });
+
+            updateTasbihUI();
+        }
+
+        // Отрисовка сборника сур и дуа
+        function renderDuaList() {
+            const container = document.getElementById('duaContainer');
+            container.innerHTML = '';
+
+            DUA_COLLECTION.forEach(item => {
+                const card = document.createElement('div');
+                card.className = 'rounded-3xl bg-white dark:bg-slate-900 p-6 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-4 flex flex-col justify-between';
+                card.innerHTML = `
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between gap-2">
+                            <h4 class="font-bold text-base text-emerald-900 dark:text-emerald-300">${item.title}</h4>
+                            <span class="w-8 h-8 rounded-lg bg-emerald-50 dark:bg-emerald-950/70 text-emerald-700 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                                <i data-lucide="book-open" class="w-4 h-4"></i>
+                            </span>
+                        </div>
+                        <p class="font-arabic text-2xl sm:text-3xl text-right leading-loose text-slate-900 dark:text-white bg-slate-50 dark:bg-slate-800/60 p-4 rounded-2xl" dir="rtl">
+                            ${item.arabic}
+                        </p>
+                        <div class="space-y-2">
+                            <p class="text-xs font-semibold text-emerald-700 dark:text-emerald-400">Транскрипция:</p>
+                            <p class="text-sm text-slate-700 dark:text-slate-300 italic leading-relaxed">${item.translit}</p>
+                        </div>
+                    </div>
+                    <div class="pt-3 border-t border-slate-100 dark:border-slate-800">
+                        <p class="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Смысловой перевод:</p>
+                        <p class="text-xs sm:text-sm text-slate-600 dark:text-slate-400 leading-relaxed">${item.translation}</p>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+
+            lucide.createIcons();
+        }
+    </script>
+</body>
+</html>
